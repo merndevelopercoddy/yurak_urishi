@@ -1,10 +1,10 @@
 """
-app_server.py — rPPG Web Server (optimallashtirilgan)
-Brauzer [has_face, R, G, B] yuboradi (16 bayt Float32).
-Server faqat POS + FFT hisoblaydi.
+app_server.py — realtime_rppg.py bilan aynan bir xil qayta ishlash.
+Brauzer JPEG yuboradi → Python Haar cascade + POS + FFT → BPM qaytadi.
 """
 
 import os, json
+import cv2
 import numpy as np
 import scipy.signal
 from collections import deque
@@ -12,14 +12,69 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-FPS          = 30
-BUFFER_SIZE  = FPS * 60
-MIN_FRAMES   = FPS * 10
-UPDATE_EVERY = FPS * 2
+# realtime_rppg.py bilan bir xil sozlamalar
+FPS           = 30
+BUFFER_SIZE   = FPS * 60
+MIN_FRAMES    = FPS * 10
+UPDATE_EVERY  = FPS * 2
 NO_FACE_RESET = FPS * 3
+
+# Yuboriluvchi kadr o'lchami
+FRAME_W = 320
+FRAME_H = 240
+# Haar cascade minSize: 320x240 da 80x80 → 640x480 dagi 80x80 ga teng
+MIN_FACE = (40, 40)
+
+
+# ─── realtime_rppg.py dagi AYNAN bir xil funksiyalar ─────────────
+
+def detect_face(frame):
+    """Haar cascade yuz aniqlash — realtime_rppg.FaceDetector.detect()"""
+    cascade = _get_cascade()
+    gray    = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces   = cascade.detectMultiScale(
+        gray, scaleFactor=1.1, minNeighbors=5, minSize=MIN_FACE
+    )
+    if len(faces) == 0:
+        return None
+    areas = [w * h for (_, _, w, h) in faces]
+    return faces[np.argmax(areas)]
+
+
+_cascade_cache = None
+def _get_cascade():
+    global _cascade_cache
+    if _cascade_cache is None:
+        _cascade_cache = cv2.CascadeClassifier(
+            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        )
+    return _cascade_cache
+
+
+def extract_skin_rgb(frame, bbox):
+    """realtime_rppg.extract_skin_rgb() bilan aynan bir xil"""
+    x, y, w, h = bbox
+    y1 = y + int(h * 0.10)
+    y2 = y + int(h * 0.70)
+    x1 = x + int(w * 0.10)
+    x2 = x + int(w * 0.90)
+    roi = frame[y1:y2, x1:x2]
+    if roi.size == 0:
+        return None
+
+    roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB).astype(np.float32)
+    ycrcb   = cv2.cvtColor(roi, cv2.COLOR_BGR2YCrCb)
+    mask    = (
+        (ycrcb[:, :, 1] >= 133) & (ycrcb[:, :, 1] <= 173) &
+        (ycrcb[:, :, 2] >= 77)  & (ycrcb[:, :, 2] <= 127)
+    )
+    if mask.sum() < 100:
+        return roi_rgb.mean(axis=(0, 1))
+    return roi_rgb[mask].mean(axis=0)
 
 
 def pos_algorithm(rgb, fs):
+    """realtime_rppg.pos_algorithm() bilan aynan bir xil"""
     seg_len = int(fs * 1.6)
     H = np.zeros(len(rgb), dtype=np.float64)
     for t in range(len(rgb) - seg_len + 1):
@@ -40,6 +95,7 @@ def pos_algorithm(rgb, fs):
 
 
 def compute_heart_rate(ppg, fs, low_hz=0.75, high_hz=3.5):
+    """realtime_rppg.compute_heart_rate() bilan aynan bir xil"""
     N = 1 << (len(ppg) - 1).bit_length()
     freqs, psd = scipy.signal.periodogram(ppg, fs=fs, nfft=N, detrend=False)
     mask = (freqs >= low_hz) & (freqs <= high_hz)
@@ -49,6 +105,8 @@ def compute_heart_rate(ppg, fs, low_hz=0.75, high_hz=3.5):
     return float(peak * 60.0)
 
 
+# ─── Sessiya ─────────────────────────────────────────────────────
+
 class SessionState:
     def __init__(self):
         self.rgb_buf   = deque(maxlen=BUFFER_SIZE)
@@ -56,68 +114,81 @@ class SessionState:
         self.no_face   = 0
         self.hr_bpm    = None
 
-    def process(self, has_face: bool, r: float, g: float, b: float) -> dict:
-        if has_face:
-            self.no_face = 0
-            self.rgb_buf.append([r, g, b])
-            self.frame_cnt += 1
+    def process_jpeg(self, jpeg_bytes: bytes) -> dict:
+        arr   = np.frombuffer(jpeg_bytes, np.uint8)
+        frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return self._make(False)
 
-            # HR yangilash
+        bbox = detect_face(frame)
+
+        if bbox is not None:
+            self.no_face = 0
+            x, y, w, h  = [int(v) for v in bbox]
+
+            rgb = extract_skin_rgb(frame, (x, y, w, h))
+            if rgb is not None:
+                self.rgb_buf.append([float(rgb[0]), float(rgb[1]), float(rgb[2])])
+                self.frame_cnt += 1
+
             if (self.frame_cnt % UPDATE_EVERY == 0 and
                     len(self.rgb_buf) >= MIN_FRAMES):
                 try:
-                    arr = np.array(self.rgb_buf, dtype=np.float64)
-                    ppg = pos_algorithm(arr, FPS)
-                    hr  = compute_heart_rate(ppg, FPS)
+                    arr_rgb = np.array(self.rgb_buf, dtype=np.float64)
+                    ppg     = pos_algorithm(arr_rgb, FPS)
+                    hr      = compute_heart_rate(ppg, FPS)
                     if hr and 40 < hr < 220:
                         self.hr_bpm = hr
                 except Exception as e:
                     print(f'HR xatosi: {e}')
+
+            # bbox ni brauzer koordinatasiga o'girish
+            sx = FRAME_W / (frame.shape[1] or FRAME_W)
+            sy = FRAME_H / (frame.shape[0] or FRAME_H)
+            bbox_out = [int(x/sx), int(y/sy), int(w/sx), int(h/sy)]
+
+            return self._make(True, bbox_out)
         else:
             self.no_face += 1
             if self.no_face > NO_FACE_RESET:
                 self.rgb_buf.clear()
                 self.frame_cnt = 0
                 self.hr_bpm    = None
+            return self._make(False)
 
+    def _make(self, has_face, bbox=None):
         n        = len(self.rgb_buf)
         progress = min(n / MIN_FRAMES, 1.0)
         remain   = max(0, (MIN_FRAMES - n)) // FPS
-
         return {
-            'has_face'  : has_face,
-            'hr_bpm'    : round(self.hr_bpm) if self.hr_bpm else None,
-            'progress'  : round(progress * 100),
-            'remain'    : int(remain),
-            'collecting': n < MIN_FRAMES,
+            'has_face' : has_face,
+            'bbox'     : bbox,
+            'hr_bpm'   : round(self.hr_bpm) if self.hr_bpm else None,
+            'progress' : round(progress * 100),
+            'remain'   : int(remain),
         }
 
 
-app = FastAPI()
+# ─── FastAPI ─────────────────────────────────────────────────────
 
+app = FastAPI()
 
 @app.websocket('/ws')
 async def ws_endpoint(ws: WebSocket):
     await ws.accept()
     state = SessionState()
+    print(f'Ulandi: {ws.client}')
     try:
         while True:
-            data = await ws.receive_bytes()
-            # Float32Array: [has_face(0/1), R, G, B] = 16 bayt
-            if len(data) == 16:
-                arr      = np.frombuffer(data, dtype=np.float32)
-                has_face = bool(arr[0] > 0.5)
-                r, g, b  = float(arr[1]), float(arr[2]), float(arr[3])
-                result   = state.process(has_face, r, g, b)
-                await ws.send_text(json.dumps(result))
+            data   = await ws.receive_bytes()
+            result = state.process_jpeg(data)
+            await ws.send_text(json.dumps(result))
     except WebSocketDisconnect:
-        pass
+        print(f'Uzildi: {ws.client}')
     except Exception as e:
         print(f'Xato: {e}')
 
-
 app.mount('/', StaticFiles(directory='web', html=True), name='static')
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
