@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#000000">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Yurak Monitor">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>rPPG Yurak Urishi Monitori</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/style.css">
@@ -15,100 +14,48 @@
 <body>
   <div id="app">
 
-    <!-- Header -->
-    <header class="header">
-      <span class="header-title">❤ Yurak Monitor</span>
-      <span id="fps-counter" class="fps-badge">-- fps</span>
-    </header>
-
-    <!-- Camera view -->
+    <!-- Kamera va overlay -->
     <div class="camera-wrap">
       <video id="video" autoplay playsinline muted></video>
       <canvas id="overlay"></canvas>
 
-      <!-- Kutish overlay (yuz topilgunga qadar) -->
-      <div id="waiting-overlay" class="waiting-overlay">
-        <div class="waiting-oval-ring"></div>
-        <div class="waiting-hint">
-          <span>Yuzingizni oval ichiga joylashtiring</span>
+      <!-- Sarlavha (tepada) -->
+      <div class="cv-title">rPPG Yurak Urishi Monitori</div>
+
+      <!-- FPS -->
+      <div class="cv-fps" id="fps-badge">-- fps</div>
+
+      <!-- Asosiy matn (BPM yoki to'planmoqda) -->
+      <div class="cv-hr" id="hr-text">Ma'lumot to'planmoqda...</div>
+
+      <!-- Yuz holati -->
+      <div class="cv-face" id="face-text"></div>
+
+      <!-- Pastki yordam matni -->
+      <div class="cv-hint">R: qayta boshlash &nbsp;|&nbsp; Yuzingizni qimirlatmang</div>
+
+      <!-- Progress paneli -->
+      <div class="cv-progress-wrap">
+        <span class="cv-progress-label" id="progress-label">Signal: 0%</span>
+        <div class="cv-progress-bg">
+          <div class="cv-progress-fill" id="progress-fill"></div>
         </div>
       </div>
 
-      <!-- Face guide oval -->
-      <div class="face-guide">
-        <svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
-          <ellipse id="guide-ellipse" cx="100" cy="130" rx="85" ry="110"
-                   fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"
-                   stroke-dasharray="8 6"/>
-        </svg>
-      </div>
-
-      <!-- Status overlay -->
-      <div class="status-overlay">
-        <span id="face-status" class="badge badge-warn">Yuz yo'q</span>
-      </div>
+      <!-- WS holati (ulanmagan bo'lsa) -->
+      <div class="cv-ws-status hidden" id="ws-status">Server ulanmoqda...</div>
     </div>
 
-    <!-- Ogohlantirish banneri -->
-    <div id="warning-banner" class="warning-banner hidden">
-      <span id="warning-icon" class="warning-icon">⚠</span>
-      <div class="warning-body">
-        <span id="warning-text">Ogohlantirish</span>
-        <span id="warning-sub"></span>
-      </div>
-    </div>
-
-    <!-- HR display card -->
-    <div class="card hr-card">
-      <div id="hr-display" class="hr-number">--</div>
-      <div class="hr-unit">BPM</div>
-      <div id="hr-label" class="hr-label">Ma'lumot to'planmoqda...</div>
-    </div>
-
-    <!-- Progress bar -->
-    <div class="card progress-card">
-      <div class="progress-label">
-        <span>Signal</span>
-        <span id="progress-pct">0%</span>
-      </div>
-      <div class="progress-bar-bg">
-        <div id="progress-bar" class="progress-bar-fill"></div>
-      </div>
-      <div id="progress-hint" class="progress-hint">
-        Yuzingizni oval ichiga joylashtiring va tinch o'tiring
-      </div>
-
-      <!-- Barqarorlik ko'rsatkichi -->
-      <div class="stable-bar-wrap">
-        <div class="stable-label">
-          <span>Barqarorlik (10s)</span>
-          <span id="stable-pct">0%</span>
-        </div>
-        <div class="stable-bar-bg">
-          <div id="stable-bar" class="stable-bar-fill"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PPG waveform -->
-    <div class="card wave-card">
-      <div class="wave-title">PPG To'lqini</div>
-      <canvas id="wave-canvas" class="wave-canvas"></canvas>
-    </div>
-
-    <!-- Controls -->
-    <div class="controls">
-      <button id="btn-start" class="btn btn-primary" onclick="App.toggleCamera()">
+    <!-- Tugma -->
+    <div class="btn-wrap">
+      <button id="btn-start" class="cv-btn" onclick="App.toggleCamera()">
         Kamerani yoqish
       </button>
-      <button id="btn-reset" class="btn btn-secondary" onclick="App.reset()">
-        Qayta boshlash
-      </button>
+      <button class="cv-btn cv-btn-reset" onclick="App.reset()">R</button>
     </div>
 
   </div>
 
-  <script src="js/rppg.js"></script>
   <script src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

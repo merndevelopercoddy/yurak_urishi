@@ -1,65 +1,24 @@
-/* ─── Reset & Base ─────────────────────────────────────────────── */
+/* ─── Reset ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:       #0f172a;
-  --surface:  #1e293b;
-  --surface2: #334155;
-  --accent:   #f43f5e;
-  --green:    #22c55e;
-  --yellow:   #eab308;
-  --text:     #f1f5f9;
-  --muted:    #94a3b8;
-  --radius:   16px;
-}
 
 html, body {
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  overflow-x: hidden;
+  background: #000;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
 }
 
 #app {
-  max-width: 480px;
-  margin: 0 auto;
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 0 0 24px;
 }
 
-/* ─── Header ────────────────────────────────────────────────────── */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--surface2);
-}
-
-.header-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-
-.fps-badge {
-  font-size: 0.75rem;
-  color: var(--muted);
-  background: var(--surface2);
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-
-/* ─── Camera ────────────────────────────────────────────────────── */
+/* ─── Kamera ─────────────────────────────────────────────────────── */
 .camera-wrap {
   position: relative;
-  width: 100%;
-  aspect-ratio: 3 / 4;
+  flex: 1;
   background: #000;
   overflow: hidden;
 }
@@ -68,7 +27,8 @@ html, body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* mirror */
+  transform: scaleX(-1);
+  display: block;
 }
 
 #overlay {
@@ -80,344 +40,157 @@ html, body {
   transform: scaleX(-1);
 }
 
-.face-guide {
+/* ─── OpenCV uslubidagi matnlar ──────────────────────────────────── */
+
+/* Sarlavha — yuqori chap */
+.cv-title {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 10px;
+  left: 10px;
+  font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+  color: #b4b4ff;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px #000;
   pointer-events: none;
 }
 
-.face-guide svg {
-  width: 65%;
-  height: 85%;
-  filter: drop-shadow(0 0 6px rgba(255,255,255,0.2));
-}
-
-#guide-ellipse {
-  transition: stroke 0.4s;
-}
-
-.face-guide.detected #guide-ellipse {
-  stroke: rgba(34, 197, 94, 0.7);
-  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.6));
-}
-
-.status-overlay {
+/* FPS — yuqori o'ng */
+.cv-fps {
   position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* ─── Badges ─────────────────────────────────────────────────────── */
-.badge {
-  display: inline-block;
+  top: 10px;
+  right: 10px;
   font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 999px;
-  backdrop-filter: blur(8px);
+  color: #888;
+  text-shadow: 1px 1px 2px #000;
+  pointer-events: none;
 }
 
-.badge-ok   { background: rgba(34,197,94,0.25);  color: #86efac; border: 1px solid rgba(34,197,94,0.4); }
-.badge-warn { background: rgba(234,179,8,0.2);   color: #fde68a; border: 1px solid rgba(234,179,8,0.4); }
-.badge-err  { background: rgba(244,63,94,0.2);   color: #fda4af; border: 1px solid rgba(244,63,94,0.4); }
-
-/* ─── Cards ─────────────────────────────────────────────────────── */
-.card {
-  margin: 0 12px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 16px;
-  border: 1px solid var(--surface2);
+/* Asosiy HR matni — chap, yuqori qism */
+.cv-hr {
+  position: absolute;
+  top: 55px;
+  left: 20px;
+  font-size: clamp(1.1rem, 5vw, 1.6rem);
+  font-weight: bold;
+  color: #ffdc00;
+  text-shadow: 2px 2px 4px #000;
+  pointer-events: none;
+  transition: color 0.4s;
 }
 
-/* ─── HR Card ───────────────────────────────────────────────────── */
-.hr-card {
-  text-align: center;
-  padding: 20px 16px 16px;
+.cv-hr.green  { color: #00f000; }
+.cv-hr.orange { color: #0082ff; }
+
+/* Yuz holati matni */
+.cv-face {
+  position: absolute;
+  top: 100px;
+  left: 20px;
+  font-size: clamp(0.75rem, 3vw, 0.95rem);
+  color: #00dc00;
+  text-shadow: 1px 1px 3px #000;
+  pointer-events: none;
 }
 
-.hr-number {
-  font-size: 5rem;
-  font-weight: 800;
-  line-height: 1;
-  color: var(--accent);
-  transition: color 0.5s;
-  letter-spacing: -2px;
+.cv-face.no-face { color: #e60000; }
+
+/* Pastki yordam matni */
+.cv-hint {
+  position: absolute;
+  bottom: 55px;
+  left: 10px;
+  font-size: clamp(0.55rem, 1.8vw, 0.65rem);
+  color: #828282;
+  text-shadow: 1px 1px 2px #000;
+  pointer-events: none;
 }
 
-.hr-number.normal { color: var(--green); }
-.hr-number.warning { color: var(--yellow); }
-
-.hr-unit {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--muted);
-  margin-top: 4px;
-  letter-spacing: 2px;
+/* Progress paneli — eng pastda */
+.cv-progress-wrap {
+  position: absolute;
+  bottom: 10px;
+  left: 10%;
+  right: 10%;
+  pointer-events: none;
 }
 
-.hr-label {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: 8px;
-}
-
-/* ─── Progress ──────────────────────────────────────────────────── */
-.progress-card { padding: 14px 16px; }
-
-.progress-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-.progress-bar-bg {
-  width: 100%;
-  height: 8px;
-  background: var(--surface2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #f43f5e, #fb923c);
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.progress-hint {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-top: 8px;
-  text-align: center;
-}
-
-/* ─── Waveform ──────────────────────────────────────────────────── */
-.wave-card { padding: 12px 16px; }
-
-.wave-title {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.wave-canvas {
-  width: 100%;
-  height: 70px;
+.cv-progress-label {
   display: block;
-  border-radius: 8px;
+  font-size: 0.55rem;
+  color: #c8c8c8;
+  margin-bottom: 3px;
+  text-shadow: 1px 1px 2px #000;
 }
 
-/* ─── Controls ──────────────────────────────────────────────────── */
-.controls {
-  display: flex;
-  gap: 10px;
-  margin: 0 12px;
-}
-
-.btn {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-}
-
-.btn:active { transform: scale(0.97); opacity: 0.85; }
-
-.btn-primary {
-  background: linear-gradient(135deg, #f43f5e, #e11d48);
-  color: #fff;
-}
-
-.btn-secondary {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-/* ─── Waiting overlay ───────────────────────────────────────────── */
-.waiting-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(3px);
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-}
-
-.waiting-overlay.fade-out {
-  opacity: 0;
-}
-
-.waiting-overlay.gone {
-  display: none;
-}
-
-.waiting-oval-ring {
-  position: absolute;
-  width: 54%;
-  height: 72%;
-  border: 2.5px dashed rgba(255, 255, 255, 0.55);
-  border-radius: 50%;
-  animation: ring-pulse 2s ease-in-out infinite;
-}
-
-@keyframes ring-pulse {
-  0%, 100% { border-color: rgba(255,255,255,0.4); transform: scale(1); }
-  50%       { border-color: rgba(255,255,255,0.85); transform: scale(1.025); }
-}
-
-.waiting-hint {
-  position: absolute;
-  bottom: 14%;
-  background: rgba(0,0,0,0.55);
-  border-radius: 20px;
-  padding: 8px 20px;
-  color: #fff;
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-align: center;
-  letter-spacing: 0.2px;
-}
-
-/* ─── Warning banner ─────────────────────────────────────────────── */
-.warning-banner {
-  margin: 0 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
-  animation: banner-in 0.25s ease;
-}
-
-@keyframes banner-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.warning-banner.hidden { display: none; }
-
-.warning-banner.motion {
-  background: rgba(234,179,8,0.12);
-  border: 1px solid rgba(234,179,8,0.45);
-  color: #fde68a;
-}
-
-.warning-banner.face-lost {
-  background: rgba(244,63,94,0.12);
-  border: 1px solid rgba(244,63,94,0.45);
-  color: #fda4af;
-}
-
-.warning-icon {
-  font-size: 1.4rem;
-  flex-shrink: 0;
-  animation: shake 0.5s ease infinite alternate;
-}
-
-@keyframes shake {
-  from { transform: rotate(-8deg); }
-  to   { transform: rotate(8deg); }
-}
-
-.warning-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-#warning-text {
-  font-weight: 700;
-  font-size: 0.88rem;
-}
-
-#warning-sub {
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-/* ─── Stability bar inside progress card ────────────────────────── */
-.stable-bar-wrap {
-  margin-top: 10px;
-}
-
-.stable-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-
-.stable-bar-bg {
+.cv-progress-bg {
   width: 100%;
-  height: 5px;
-  background: var(--surface2);
-  border-radius: 999px;
+  height: 12px;
+  background: #282828;
+  border-radius: 2px;
   overflow: hidden;
 }
 
-.stable-bar-fill {
+.cv-progress-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #eab308, #22c55e);
-  border-radius: 999px;
-  transition: width 0.3s ease;
+  background: #00b4dc;
+  transition: width 0.3s, background 0.5s;
+  border-radius: 2px;
 }
 
-/* ─── Loading screen ─────────────────────────────────────────────── */
-.loading-screen {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
+/* WS ulanmagan holat */
+.cv-ws-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #555;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #ffdc00;
+  text-align: center;
+}
+
+.cv-ws-status.hidden { display: none; }
+
+/* ─── Tugmalar ───────────────────────────────────────────────────── */
+.btn-wrap {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  z-index: 100;
-  transition: opacity 0.5s;
+  gap: 8px;
+  padding: 8px;
+  background: #111;
+  border-top: 1px solid #333;
 }
 
-.loading-screen.hidden { opacity: 0; pointer-events: none; }
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--surface2);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.cv-btn {
+  flex: 1;
+  padding: 12px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+.cv-btn:active { background: #333; }
 
-/* ─── Pulse animation on HR ──────────────────────────────────────── */
-@keyframes pulse-beat {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.06); }
-  60%  { transform: scale(1); }
+.cv-btn-reset {
+  flex: 0 0 48px;
+  background: #1a1a1a;
+  color: #00dc00;
+  border-color: #00dc00;
 }
 
-.hr-number.beat { animation: pulse-beat 0.4s ease; }
+/* ─── Pulse animatsiya ───────────────────────────────────────────── */
+@keyframes bpm-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+.cv-hr.pulse { animation: bpm-pulse 0.5s ease; }
