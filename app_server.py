@@ -8,17 +8,39 @@ WebSocket: /ws
 Statik:    /  (web/ papkasi)
 """
 
-import os, json, sys
+import os, json
 import cv2
 import numpy as np
+import scipy.signal
 from collections import deque
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-sys.path.insert(0, os.path.dirname(__file__))
-from rppglib.unsupervised import pos
-from rppglib.processing import calculate_fft_hr
+# ─── rPPG algoritmlari (rppglib importlarsiz) ────────────────────
+def pos(rgb, framerate):
+    """POS algoritmi — Wang et al. 2017."""
+    l = int(framerate * 3.2)
+    H = np.zeros(rgb.shape[0])
+    for t in range(0, rgb.shape[0] - l + 1):
+        C = rgb[t:t+l, :].T
+        mean_c = np.mean(C, axis=1)
+        if np.any(mean_c < 1e-6):
+            continue
+        Cn = np.linalg.inv(np.diag(mean_c)) @ C
+        S  = np.array([[0,1,-1],[-2,1,1]]) @ Cn
+        std = np.array([1, np.std(S[0]) / (np.std(S[1]) + 1e-9)])
+        P  = std @ S
+        H[t:t+l] += P - np.mean(P)
+    return H
+
+def calculate_fft_hr(ppg_signal, fs=30, low_pass=0.5, high_pass=3.5):
+    """FFT orqali yurak urishi hisoblash."""
+    sig = np.expand_dims(ppg_signal, 0)
+    N   = 1 if sig.shape[1] == 0 else 2 ** (sig.shape[1] - 1).bit_length()
+    f, pxx = scipy.signal.periodogram(sig, fs=fs, nfft=N, detrend=False)
+    mask = np.argwhere((f >= low_pass) & (f <= high_pass))
+    return float(np.take(f, mask)[np.argmax(np.take(pxx, mask))] * 60)
 
 FPS          = 30
 MIN_FRAMES   = FPS * 10
