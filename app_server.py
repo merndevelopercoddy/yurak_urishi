@@ -38,9 +38,12 @@ def calculate_fft_hr(ppg_signal, fs=30, low_pass=0.5, high_pass=3.5):
     """FFT orqali yurak urishi hisoblash."""
     sig = np.expand_dims(ppg_signal, 0)
     N   = 1 if sig.shape[1] == 0 else 2 ** (sig.shape[1] - 1).bit_length()
-    f, pxx = scipy.signal.periodogram(sig, fs=fs, nfft=N, detrend=False)
-    mask = np.argwhere((f >= low_pass) & (f <= high_pass))
-    return float(np.take(f, mask)[np.argmax(np.take(pxx, mask))] * 60)
+    f, pxx     = scipy.signal.periodogram(sig, fs=fs, nfft=N, detrend=False)
+    mask       = np.argwhere((f >= low_pass) & (f <= high_pass))
+    f_masked   = np.take(f,   mask)
+    pxx_masked = np.take(pxx, mask)
+    fft_hr     = float(np.take(f_masked, np.argmax(pxx_masked, 0))[0] * 60)
+    return fft_hr
 
 FPS          = 30
 MIN_FRAMES   = FPS * 10
