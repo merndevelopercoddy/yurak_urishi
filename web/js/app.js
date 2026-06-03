@@ -87,10 +87,8 @@ const App = (() => {
     ws.onmessage = (e) => {
       wsSending = false;
       try {
-        const result = JSON.parse(e.data);
-        serverResult = result;
-        handleServerResult(result);
-      } catch { /* ignore */ }
+        handleServerResult(JSON.parse(e.data));
+      } catch (err) { console.warn('WS parse xato:', err); }
     };
   }
 
@@ -109,8 +107,11 @@ const App = (() => {
       if (!blob || !ws || ws.readyState !== WebSocket.OPEN) {
         wsSending = false; return;
       }
-      blob.arrayBuffer().then(buf => ws.send(buf))
-          .catch(() => { wsSending = false; });
+      blob.arrayBuffer().then(buf => {
+        ws.send(buf);
+        // 2s ichida javob kelmasa qulfni ochish (xavfsizlik)
+        setTimeout(() => { wsSending = false; }, 2000);
+      }).catch(() => { wsSending = false; });
     }, 'image/jpeg', SEND_QUALITY);
   }
 
