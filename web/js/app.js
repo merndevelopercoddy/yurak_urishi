@@ -100,24 +100,38 @@ const App = (() => {
     }, 'image/jpeg', JPEG_QUALITY);
   }
 
-  // ─── Server natijasini ko'rsatish (draw_ui kabi) ──────────────────
+  // Overlay matnini to'g'ri (akssiz) chizish uchun yordamchi
+  // CSS scaleX(-1) matnni ham teskari qiladi — bu funksiya uni to'g'rilaydi
+  function drawMirrorSafeText(text, canvasX, canvasY, color, fontSize) {
+    octx.save();
+    // Kontekstni gorizontal aks ettirish — CSS aksi bilan birgalikda = to'g'ri matn
+    octx.setTransform(-1, 0, 0, 1, overlay.width, 0);
+    octx.fillStyle = color;
+    octx.font      = `bold ${fontSize}px Courier New`;
+    octx.shadowColor   = 'rgba(0,0,0,0.9)';
+    octx.shadowBlur    = 4;
+    // Pozitsiyani akslangan koordinataga o'girish
+    octx.fillText(text, overlay.width - canvasX, canvasY);
+    octx.restore();
+  }
+
+  // ─── Server natijasini ko'rsatish ────────────────────────────────
   function renderResult(r) {
     clearOverlay();
 
     if (r.has_face && r.bbox) {
       const [bx, by, bw, bh] = r.bbox;
-      const sx = overlay.width  / SEND_W;
-      const sy = overlay.height / SEND_H;
+      const sx  = overlay.width  / SEND_W;
+      const sy  = overlay.height / SEND_H;
+      const fsz = Math.round(Math.max(13, Math.min(sx, sy) * 14));
 
-      // Yashil to'rtburchak
-      octx.strokeStyle = '#00dc00';
-      octx.lineWidth   = 2;
+      // Yuz to'rtburchagi — ramka ikki qalinlikda, to'liq qoplasin
+      octx.strokeStyle = '#00ff00';
+      octx.lineWidth   = 2.5;
       octx.strokeRect(bx * sx, by * sy, bw * sx, bh * sy);
 
-      // "Yuz topildi" matni
-      octx.fillStyle = '#00dc00';
-      octx.font      = `${Math.round(14 * Math.min(sx, sy))}px Courier New`;
-      octx.fillText('Yuz topildi', bx * sx, by * sy - 6);
+      // "Yuz topildi" — to'g'ri yo'nalishda, ramka ustida
+      drawMirrorSafeText('Yuz topildi', bx * sx, by * sy - 6, '#00ff00', fsz);
 
       faceText.textContent = '';
       faceText.className   = 'cv-face';

@@ -47,10 +47,10 @@ html, body {
   position: absolute;
   top: 10px;
   left: 10px;
-  font-size: clamp(0.7rem, 2.5vw, 0.9rem);
-  color: #b4b4ff;
+  font-size: clamp(0.72rem, 2.5vw, 0.92rem);
+  color: #c8c8ff;
   font-weight: bold;
-  text-shadow: 1px 1px 3px #000;
+  text-shadow: 0 0 6px #000, 1px 1px 0 #000, -1px -1px 0 #000;
   pointer-events: none;
 }
 
@@ -60,48 +60,52 @@ html, body {
   top: 10px;
   right: 10px;
   font-size: 0.75rem;
-  color: #888;
-  text-shadow: 1px 1px 2px #000;
+  color: #aaa;
+  text-shadow: 0 0 4px #000, 1px 1px 0 #000;
   pointer-events: none;
 }
 
 /* Asosiy HR matni — chap, yuqori qism */
 .cv-hr {
   position: absolute;
-  top: 55px;
-  left: 20px;
-  font-size: clamp(1.1rem, 5vw, 1.6rem);
+  top: 50px;
+  left: 16px;
+  font-size: clamp(1.2rem, 5vw, 1.7rem);
   font-weight: bold;
-  color: #ffdc00;
-  text-shadow: 2px 2px 4px #000;
+  color: #ffe000;
+  text-shadow: 0 0 8px #000, 2px 2px 0 #000, -1px -1px 0 #000;
   pointer-events: none;
-  transition: color 0.4s;
+  transition: color 0.3s;
 }
 
-.cv-hr.green  { color: #00f000; }
-.cv-hr.orange { color: #0082ff; }
+.cv-hr.green  { color: #00ff44; text-shadow: 0 0 8px rgba(0,255,68,0.5), 2px 2px 0 #000; }
+.cv-hr.orange { color: #ff8800; text-shadow: 0 0 8px rgba(255,136,0,0.5), 2px 2px 0 #000; }
 
 /* Yuz holati matni */
 .cv-face {
   position: absolute;
-  top: 100px;
-  left: 20px;
-  font-size: clamp(0.75rem, 3vw, 0.95rem);
-  color: #00dc00;
-  text-shadow: 1px 1px 3px #000;
+  top: 98px;
+  left: 16px;
+  font-size: clamp(0.78rem, 3vw, 1rem);
+  font-weight: bold;
+  color: #00ff44;
+  text-shadow: 0 0 6px #000, 1px 1px 0 #000;
   pointer-events: none;
 }
 
-.cv-face.no-face { color: #e60000; }
+.cv-face.no-face {
+  color: #ff3333;
+  text-shadow: 0 0 6px rgba(255,0,0,0.6), 1px 1px 0 #000;
+}
 
 /* Pastki yordam matni */
 .cv-hint {
   position: absolute;
   bottom: 55px;
   left: 10px;
-  font-size: clamp(0.55rem, 1.8vw, 0.65rem);
-  color: #828282;
-  text-shadow: 1px 1px 2px #000;
+  font-size: clamp(0.58rem, 1.8vw, 0.68rem);
+  color: #aaa;
+  text-shadow: 0 0 4px #000, 1px 1px 0 #000;
   pointer-events: none;
 }
 
@@ -181,10 +185,11 @@ html, body {
 .cv-btn:active { background: #333; }
 
 .cv-btn-reset {
-  flex: 0 0 48px;
+  flex: 0 0 auto;
+  min-width: 90px;
   background: #1a1a1a;
-  color: #00dc00;
-  border-color: #00dc00;
+  color: #00ff44;
+  border-color: #00ff44;
 }
 
 /* ─── Pulse animatsiya ───────────────────────────────────────────── */
