@@ -12,17 +12,15 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-# realtime_rppg.py bilan bir xil sozlamalar
-FPS           = 30
-BUFFER_SIZE   = FPS * 60
-MIN_FRAMES    = FPS * 10
-UPDATE_EVERY  = FPS * 2
-NO_FACE_RESET = FPS * 3
+# Brauzer 10fps yuboradi — server shu fps da ishlaydi
+SERVER_FPS    = 10
+BUFFER_SIZE   = SERVER_FPS * 120   # 2 daqiqalik bufer
+MIN_FRAMES    = SERVER_FPS * 10    # 10 soniyalik minimum (100 kadr)
+UPDATE_EVERY  = SERVER_FPS * 2     # 2 sekundda bir HR yangilash
+NO_FACE_RESET = SERVER_FPS * 3     # 3 soniyada reset
 
-# Yuboriluvchi kadr o'lchami
-FRAME_W = 320
-FRAME_H = 240
-# Haar cascade minSize: 320x240 da 80x80 → 640x480 dagi 80x80 ga teng
+FRAME_W  = 320
+FRAME_H  = 240
 MIN_FACE = (40, 40)
 
 
@@ -135,8 +133,8 @@ class SessionState:
                     len(self.rgb_buf) >= MIN_FRAMES):
                 try:
                     arr_rgb = np.array(self.rgb_buf, dtype=np.float64)
-                    ppg     = pos_algorithm(arr_rgb, FPS)
-                    hr      = compute_heart_rate(ppg, FPS)
+                    ppg     = pos_algorithm(arr_rgb, SERVER_FPS)
+                    hr      = compute_heart_rate(ppg, SERVER_FPS)
                     if hr and 40 < hr < 220:
                         self.hr_bpm = hr
                 except Exception as e:
@@ -159,7 +157,7 @@ class SessionState:
     def _make(self, has_face, bbox=None):
         n        = len(self.rgb_buf)
         progress = min(n / MIN_FRAMES, 1.0)
-        remain   = max(0, (MIN_FRAMES - n)) // FPS
+        remain   = max(0, (MIN_FRAMES - n)) // SERVER_FPS
         return {
             'has_face' : has_face,
             'bbox'     : bbox,

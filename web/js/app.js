@@ -6,10 +6,12 @@
 'use strict';
 
 const FPS          = 30;
-const SEND_MS      = 1000 / FPS;     // 33ms — 30fps
-const JPEG_QUALITY = 0.85;
+const SEND_FPS     = 10;                // serverga 10fps — Haar cascade tezligiga mos
+const SEND_MS      = 1000 / SEND_FPS;  // 100ms
+const JPEG_QUALITY = 0.80;
 const SEND_W       = 320;
 const SEND_H       = 240;
+const MAX_WS_BUF   = 30_000;           // 30KB — buferi to'lsa o'tkazib yuborish
 const WS_PROTO     = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const WS_URL       = `${WS_PROTO}//${location.host}/ws`;
 
@@ -39,12 +41,11 @@ const App = (() => {
   let isRunning  = false;
   let ws         = null;
   let wsReady    = false;
-  let lastSendMs = 0;
-  let fpsFrames  = 0;
-  let fpsTime    = performance.now();
-
-  // Oxirgi server natijasi (fire-and-forget tufayli async keladi)
-  let lastResult = null;
+  let lastSendMs  = 0;
+  let blobPending = false;   // bir vaqtda faqat bitta blob
+  let fpsFrames   = 0;
+  let fpsTime     = performance.now();
+  let lastResult  = null;
 
   // ─── WebSocket ───────────────────────────────────────────────────
   function connectWS() {
@@ -82,14 +83,19 @@ const App = (() => {
     wsReady = false;
   }
 
-  // ─── JPEG kadrni serverga yuborish (fire-and-forget) ─────────────
+  // ─── JPEG kadrni serverga yuborish ───────────────────────────────
   function sendFrame() {
     if (!wsReady || !ws || ws.readyState !== WebSocket.OPEN) return;
     if (video.readyState < 2) return;
+    if (blobPending) return;                     // oldingi blob tayyorlanmoqda
+    if (ws.bufferedAmount > MAX_WS_BUF) return;  // bufer to'lib ketgan — o'tkazib yubor
 
     sendCtx.drawImage(video, 0, 0, SEND_W, SEND_H);
+    blobPending = true;
     sendCanvas.toBlob(blob => {
+      blobPending = false;
       if (!blob || !ws || ws.readyState !== WebSocket.OPEN) return;
+      if (ws.bufferedAmount > MAX_WS_BUF) return;
       blob.arrayBuffer().then(buf => ws.send(buf)).catch(() => {});
     }, 'image/jpeg', JPEG_QUALITY);
   }
